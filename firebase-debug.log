@@ -1,0 +1,92 @@
+[debug] [2025-09-12T16:26:15.561Z] ----------------------------------------------------------------------
+[debug] [2025-09-12T16:26:15.564Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Ken\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js serve
+[debug] [2025-09-12T16:26:15.564Z] CLI Version:   14.16.0
+[debug] [2025-09-12T16:26:15.564Z] Platform:      win32
+[debug] [2025-09-12T16:26:15.565Z] Node Version:  v22.19.0
+[debug] [2025-09-12T16:26:15.565Z] Time:          Sat Sep 13 2025 00:26:15 GMT+0800 (Philippine Standard Time)
+[debug] [2025-09-12T16:26:15.565Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-12T16:26:15.834Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-12T16:26:15.835Z] > authorizing via signed-in user (kenseostory01@gmail.com)
+[debug] [2025-09-12T16:26:15.835Z] [iam] checking project my-moonbucks-firebase-id for permissions ["firebase.projects.get"]
+[debug] [2025-09-12T16:26:15.836Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:15.836Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:15.837Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id:testIamPermissions [none]
+[debug] [2025-09-12T16:26:15.837Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id:testIamPermissions x-goog-quota-user=projects/my-moonbucks-firebase-id
+[debug] [2025-09-12T16:26:15.837Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-09-12T16:26:16.784Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id:testIamPermissions 200
+[debug] [2025-09-12T16:26:16.784Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-09-12T16:26:16.785Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:16.785Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:16.785Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id [none]
+[debug] [2025-09-12T16:26:17.018Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id 200
+[debug] [2025-09-12T16:26:17.018Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/my-moonbucks-firebase-id {"projectNumber":"361396425482","projectId":"my-moonbucks-firebase-id","lifecycleState":"ACTIVE","name":"my-MoonBucks-firebase-id","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-09-10T14:45:58.720142Z"}
+[info] 
+[info] === Serving from 'C:\Users\Ken\Documents\Firebase3rd'...
+[info] 
+[debug] [2025-09-12T16:26:17.025Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.025Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.033Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/sites 
+[debug] [2025-09-12T16:26:17.070Z] defaultcredentials: writing to file C:\Users\Ken\AppData\Roaming\firebase\kenseostory01_gmail_com_application_default_credentials.json
+[debug] [2025-09-12T16:26:17.074Z] Setting GAC to C:\Users\Ken\AppData\Roaming\firebase\kenseostory01_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\Ken\\AppData\\Roaming\\firebase\\kenseostory01_gmail_com_application_default_credentials.json"}}
+[debug] [2025-09-12T16:26:17.074Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.074Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.075Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/adminSdkConfig [none]
+[debug] [2025-09-12T16:26:17.419Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/adminSdkConfig 200
+[debug] [2025-09-12T16:26:17.419Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/adminSdkConfig {"projectId":"my-moonbucks-firebase-id","storageBucket":"my-moonbucks-firebase-id.firebasestorage.app"}
+[debug] [2025-09-12T16:26:17.718Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/sites 200
+[debug] [2025-09-12T16:26:17.718Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/sites {"sites":[{"name":"projects/my-moonbucks-firebase-id/sites/my-moonbucks-firebase-id","defaultUrl":"https://my-moonbucks-firebase-id.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-09-12T16:26:17.718Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.719Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:17.719Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/webApps/-/config [none]
+[debug] [2025-09-12T16:26:18.215Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/webApps/-/config 200
+[debug] [2025-09-12T16:26:18.216Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id/webApps/-/config {"projectId":"my-moonbucks-firebase-id","appId":"1:361396425482:web:557ee43bc8b5af33da20f3","storageBucket":"my-moonbucks-firebase-id.firebasestorage.app","apiKey":"AIzaSyCHCZ_SAvTxHYjgmRfiCF3fW2SzB3YnFh8","authDomain":"my-moonbucks-firebase-id.firebaseapp.com","messagingSenderId":"361396425482","measurementId":"G-E04CRTG277"}
+[debug] [2025-09-12T16:26:18.234Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:18.234Z] Checked if tokens are valid: true, expires at: 1757697126568
+[debug] [2025-09-12T16:26:18.235Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id [none]
+[debug] [2025-09-12T16:26:18.486Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id 200
+[debug] [2025-09-12T16:26:18.486Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/my-moonbucks-firebase-id {"projectId":"my-moonbucks-firebase-id","projectNumber":"361396425482","displayName":"my-MoonBucks-firebase-id","name":"projects/my-moonbucks-firebase-id","resources":{"hostingSite":"my-moonbucks-firebase-id"},"state":"ACTIVE","etag":"1_da59b07f-2f0e-4422-922b-b4b13ed5ca24"}
+[info] i  functions: Watching "C:\Users\Ken\Documents\Firebase3rd\functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"C:\\Users\\Ken\\Documents\\Firebase3rd\\functions\" for Cloud Functions..."}}
+[info] +  hosting[my-moonbucks-firebase-id]: Local server: http://localhost:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5000\u001b[22m\u001b[24m"}}
+[debug] [2025-09-12T16:26:18.504Z] Validating nodejs source
+[debug] [2025-09-12T16:26:19.682Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-09-12T16:26:19.682Z] Building nodejs source
+[debug] [2025-09-12T16:26:19.683Z] Failed to find version of module node: reached end of search path C:\Users\Ken\Documents\Firebase3rd\functions\node_modules
+[info] +  functions: Using node@22 from host. 
+[debug] [2025-09-12T16:26:19.685Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-09-12T16:26:19.693Z] Found firebase-functions binary at 'C:\Users\Ken\Documents\Firebase3rd\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8677
+
+[debug] [2025-09-12T16:26:20.188Z] Got response from /__/functions.yaml {"endpoints":{"adminListUsers":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"adminListUsers"},"adminDeleteUser":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"adminDeleteUser"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[info] +  functions: Loaded functions definitions from source: adminListUsers, adminDeleteUser. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: adminListUsers, adminDeleteUser."}}
+[info] +  functions[us-central1-adminListUsers]: http function initialized (http://localhost:5001/my-moonbucks-firebase-id/us-central1/adminListUsers). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://localhost:5001/my-moonbucks-firebase-id/us-central1/adminListUsers)."}}
+[info] +  functions[us-central1-adminDeleteUser]: http function initialized (http://localhost:5001/my-moonbucks-firebase-id/us-central1/adminDeleteUser). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://localhost:5001/my-moonbucks-firebase-id/us-central1/adminDeleteUser)."}}
+[info] i  hosting: ::1 - - [12/Sep/2025:16:26:38 +0000] "GET / HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [12/Sep/2025:16:26:38 +0000] \"GET / HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [12/Sep/2025:16:26:38 +0000] "GET /__/firebase/init.js?useEmulator=true HTTP/1.1" 200 - "http://localhost:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [12/Sep/2025:16:26:38 +0000] \"GET /__/firebase/init.js?useEmulator=true HTTP/1.1\" 200 - \"http://localhost:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [12/Sep/2025:16:27:45 +0000] "GET /admin-add.html HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [12/Sep/2025:16:27:45 +0000] \"GET /admin-add.html HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [12/Sep/2025:16:27:45 +0000] "GET /auth.js HTTP/1.1" 200 - "http://localhost:5000/admin-add.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [12/Sep/2025:16:27:45 +0000] \"GET /auth.js HTTP/1.1\" 200 - \"http://localhost:5000/admin-add.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36\""}}

@@ -1,0 +1,148 @@
+<h1></h1>
+<div id="mount" class="products-container">Loading...</div>
+
+<style>
+  h1 {
+    margin-bottom: 16px;
+    color: #c7b7ff;
+  }
+  .products-container {
+    background: rgba(28, 25, 43, 0.9);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    color: #e7e9ea;
+  }
+  thead {
+    background: #4c1d95;
+    color: #fff;
+  }
+  th, td {
+    padding: 12px 10px;
+    text-align: left;
+  }
+  tbody tr:nth-child(even) {
+    background: rgba(255,255,255,0.03);
+  }
+  tbody tr:hover {
+    background: rgba(124,58,237,0.15);
+  }
+  input.stockInput {
+    width: 80px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #1f1f2e;
+    color: #e7e9ea;
+    font-size: 13px;
+  }
+  .updateBtn {
+    margin-left: 6px;
+    background: #4c1d95;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .2s ease;
+  }
+  .updateBtn:hover {
+    background: #6d28d9;
+  }
+</style>
+
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+  // ✅ Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHCZ_SAvTxHYjgmRfiCF3fW2SzB3YnFh8",
+    authDomain: "my-moonbucks-firebase-id.firebaseapp.com",
+    projectId: "my-moonbucks-firebase-id",
+    storageBucket: "my-moonbucks-firebase-id.appspot.com",
+    messagingSenderId: "361396425482",
+    appId: "1:361396425482:web:557ee43bc8b5af33da20f3"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const mount = document.getElementById("mount");
+
+  // 🔄 Live product list
+  onSnapshot(collection(db, "products"), (snap) => {
+    if (snap.empty) {
+      mount.innerHTML = "<p>No products found</p>";
+      return;
+    }
+
+    const rows = snap.docs.map(d => {
+      const p = d.data();
+      const stock = Number.isFinite(p.stock) ? p.stock : 0;
+      return `
+        <tr>
+          <td>${p.name || ""}</td>
+          <td>₱${(p.price || 0).toFixed(2)}</td>
+          <td>
+            <input type="number" min="0" value="${stock}" data-uid="${d.id}" data-current="${stock}" class="stockInput"/>
+            <button class="updateBtn" data-uid="${d.id}">Update</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    mount.innerHTML = `
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Price</th><th>Stock</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  });
+
+  // 🛠 Handle stock updates
+  mount.addEventListener("click", async (e) => {
+    if (!e.target.classList.contains("updateBtn")) return;
+
+    const uid = e.target.dataset.uid;
+    const input = mount.querySelector(`input[data-uid="${uid}"]`);
+    if (!input) return;
+
+    const newStock = parseInt(input.value, 10);
+    const currentStock = parseInt(input.getAttribute("data-current"), 10);
+
+    if (!auth.currentUser) {
+      Swal.fire("Not logged in", "You must sign in as admin to update stock.", "error");
+      return;
+    }
+
+    if (isNaN(newStock) || newStock < 0) {
+      Swal.fire("Invalid", "Please enter a valid stock value.", "warning");
+      return;
+    }
+
+    if (newStock === currentStock) {
+      Swal.fire("No changes", "Stock is already set to this value.", "info");
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "products", uid), { stock: newStock });
+      Swal.fire("Updated!", "Stock updated successfully ✅", "success");
+    } catch (err) {
+      console.error("Update error:", err);
+      Swal.fire("Error", "❌ Failed to update stock (check rules).", "error");
+    }
+  });
+</script>

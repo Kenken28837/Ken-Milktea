@@ -1,0 +1,191 @@
+<h1></h1>
+<div id="ordersMount" class="orders-container">Loading...</div>
+
+<style>
+  body {
+    background: radial-gradient(120% 120% at 0% 0%, #0b0c0f, #111318);
+    color: #e7e9ea;
+    font-family: system-ui, sans-serif;
+  }
+
+  h1 {
+    margin-bottom: 16px;
+    color: #c7b7ff;
+    text-align: center;
+  }
+
+  .orders-container {
+    background: rgba(28, 25, 43, 0.9);
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    overflow-x: auto;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    color: #e7e9ea;
+  }
+
+  thead {
+    background: #4c1d95;
+    color: #fff;
+  }
+
+  th, td {
+    padding: 12px 10px;
+    text-align: left;
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  tbody tr:hover {
+    background: rgba(124, 58, 237, 0.15);
+  }
+
+  .statusSelect {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #1f1f2e;
+    color: #e7e9ea;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .deleteBtn {
+    background: #ef2b4a;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .deleteBtn:hover {
+    background: #c81e34;
+  }
+
+  .proof-img {
+    max-height: 60px;
+    border-radius: 6px;
+    display: block;
+  }
+</style>
+
+<script type="module">
+  import { app, db } from "./auth.js";
+  import {
+    collection,
+    onSnapshot,
+    updateDoc,
+    deleteDoc,
+    doc
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const ordersEl = document.getElementById("ordersMount");
+
+  const staticProofImage = "Payment.png"; // 🖼️ Your local or hosted image path
+
+  onSnapshot(collection(db, "orders"), (snap) => {
+    if (snap.empty) {
+      ordersEl.innerHTML = "<p>No ongoing orders yet.</p>";
+      return;
+    }
+
+    const rows = snap.docs.map(d => {
+      const o = d.data();
+      const status = o.deliveryStatus || "pending";
+
+      // 🔒 Static image always used
+      const proofHTML = `
+        <a href="${staticProofImage}" target="_blank">
+          <img src="${staticProofImage}" alt="Proof" class="proof-img" />
+        </a>
+      `;
+
+      return `
+        <tr data-row="${d.id}">
+          <td><code>${d.id}</code></td>
+          <td>${o.userId || "guest"}</td>
+          <td><strong>₱${(o.total || 0).toFixed(2)}</strong></td>
+          <td>${proofHTML}</td>
+          <td>
+            <select data-uid="${d.id}" class="statusSelect">
+              <option value="pending" ${status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="on_the_way" ${status === "on_the_way" ? "selected" : ""}>On the way</option>
+              <option value="delivered" ${status === "delivered" ? "selected" : ""}>Delivered</option>
+              <option value="cancelled" ${status === "cancelled" ? "selected" : ""}>Cancelled</option>
+            </select>
+          </td>
+          <td>
+            <button class="deleteBtn" data-uid="${d.id}">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    ordersEl.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>User</th>
+            <th>Total</th>
+            <th>Proof</th>
+            <th>Update</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  });
+
+  ordersEl.addEventListener("change", async (e) => {
+    if (!e.target.classList.contains("statusSelect")) return;
+    const uid = e.target.dataset.uid;
+    const newStatus = e.target.value;
+
+    try {
+      await updateDoc(doc(db, "orders", uid), {
+        deliveryStatus: newStatus
+      });
+      Swal.fire("Updated!", "Order status updated ✅", "success");
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to update status ❌", "error");
+    }
+  });
+
+  ordersEl.addEventListener("click", async (e) => {
+    if (!e.target.classList.contains("deleteBtn")) return;
+    const uid = e.target.dataset.uid;
+
+    const confirm = await Swal.fire({
+      title: "Delete this order?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it",
+      cancelButtonText: "Cancel"
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "orders", uid));
+      Swal.fire("Deleted!", "Order has been removed 🗑️", "success");
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to delete order ❌", "error");
+    }
+  });
+</script>

@@ -1,0 +1,187 @@
+<!-- admin.html (drop-in replacement; only additions are: real sign-out + auth guard) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard · MoonBucks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <style>
+    :root { --text:#e7e9ea; --muted:#c7b7ff; --badge-bg:#1f2229; --green:#16a34a; --amber:#d97706; --red:#ef2b4a; }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Arial;background:#070b1a}
+    canvas#stars{position:fixed;inset:0;z-index:-1;display:block;}
+    .dock{position:fixed;left:14px;top:12px;bottom:12px;width:84px;display:flex;flex-direction:column;align-items:center;padding:12px 8px;gap:12px;background:linear-gradient(180deg,#3b0764 0%,#4c1d95 35%,#1e1b4b 70%,#0b1024 100%);border:1px solid rgba(124,58,237,.55);border-radius:24px;box-shadow:0 12px 36px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+    .dock .nav-item{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;position:relative;color:var(--muted);text-decoration:none;outline:none;transition:transform .12s ease,background .12s ease,color .12s ease}
+    .dock .nav-item:hover{background:rgba(255,255,255,.08);color:#fff;transform:translateY(-1px)}
+    .dock .nav-item[aria-current="page"]{color:#fff;background:rgba(124,58,237,.22)}
+    .dock .spacer{flex:1}
+    .badge{position:absolute;top:6px;right:6px;min-width:18px;height:18px;padding:0 6px;border-radius:999px;font-size:11px;line-height:18px;text-align:center;background:var(--badge-bg);color:var(--text)}
+    .badge.green{background:rgba(22,163,74,.35)} .badge.amber{background:rgba(217,119,6,.4)} .badge.red{background:rgba(239,43,74,.6);color:#fff}
+    main{margin-left:140px;padding:24px}
+    h1{margin-top:0;color:#c7b7ff}
+    .card{background:rgba(28,25,43,0.9);padding:20px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.45);margin-bottom:20px}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+    .stat{background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;text-align:center}
+    .stat h2{margin:0;font-size:20px}
+    .stat p{margin:4px 0 0;color:var(--muted)}
+    canvas.chart{max-width:360px;margin:0 auto;display:block}
+  </style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <!-- Sidebar Dock -->
+  <nav class="dock" aria-label="Admin">
+    <a class="nav-item" href="#dashboard" data-route="dashboard" title="Dashboard"><i class="fa-solid fa-house fa-lg"></i><span class="sr-only">Dashboard</span></a>
+    <a class="nav-item" href="#add" data-route="add" title="Add Product"><i class="fa-solid fa-square-plus fa-lg"></i><span class="sr-only">Add Product</span></a>
+    <a class="nav-item" href="#ongoing" data-route="ongoing" title="Ongoing Orders"><i class="fa-solid fa-clock-rotate-left fa-lg"></i><span class="badge amber">0</span><span class="sr-only">Ongoing</span></a>
+    <a class="nav-item" href="#users" data-route="users" title="Users"><i class="fa-solid fa-user fa-lg"></i><span class="badge green">0</span><span class="sr-only">Users</span></a>
+    <a class="nav-item" href="#products" data-route="products" title="Products"><i class="fa-solid fa-box fa-lg"></i><span class="badge red">0</span><span class="sr-only">Products</span></a>
+    <div class="spacer"></div>
+    <a class="nav-item" href="#logout" data-route="logout" title="Logout"><i class="fa-solid fa-right-from-bracket fa-lg"></i><span class="sr-only">Logout</span></a>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    <h1 id="viewTitle">Dashboard</h1>
+    <section id="content">
+      <div class="stats">
+        <div class="stat"><h2>42</h2><p>Ongoing Orders</p></div>
+        <div class="stat"><h2>128</h2><p>Users</p></div>
+        <div class="stat"><h2>58</h2><p>Products</p></div>
+      </div>
+      <div class="card">
+        <canvas id="orderChart" class="chart"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Save Dashboard template once
+    const DASHBOARD_HTML = document.querySelector("#content").innerHTML;
+
+    // Draw Chart.js donut
+    function renderChart() {
+      const ctx = document.getElementById('orderChart');
+      if (!ctx) return;
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Ongoing', 'Completed', 'Cancelled'],
+          datasets: [{
+            data: [42, 75, 12],
+            backgroundColor: ['#d97706', '#16a34a', '#ef2b4a']
+          }]
+        },
+        options: { responsive:true, plugins:{legend:{labels:{color:'#e7e9ea'}}}}
+      });
+    }
+    renderChart();
+
+    // Routes
+    const ROUTES = {
+      add: "admin-add.html",
+      ongoing: "admin-ongoing.html",
+      users: "admin-users.html",
+      products: "admin-products.html"
+    };
+
+    function injectViewHTML(target, html) {
+      target.innerHTML = html;
+      const scripts = target.querySelectorAll("script");
+      for (const old of scripts) {
+        const s = document.createElement("script");
+        for (const { name, value } of old.attributes) s.setAttribute(name, value);
+        if (old.src && !old.textContent.trim()) s.src = old.src;
+        else s.textContent = old.textContent;
+        (document.head || document.documentElement).appendChild(s);
+        old.remove();
+      }
+    }
+
+    async function loadView(hash) {
+      const content = document.getElementById("content");
+      const title = document.getElementById("viewTitle");
+      const titles = {dashboard:"Dashboard",add:"Add Product",ongoing:"Ongoing Orders",users:"Users",products:"Products",logout:"Logout"};
+      title.textContent = titles[hash] || "Dashboard";
+
+      if (hash === "dashboard") {
+        injectViewHTML(content, DASHBOARD_HTML);
+        renderChart();
+        return;
+      }
+      if (hash === "logout") return showLogoutConfirm();
+
+      const path = ROUTES[hash];
+      if (!path) {
+        injectViewHTML(content, "<p>Welcome to the dashboard.</p>");
+        return;
+      }
+      try {
+        injectViewHTML(content, "<p>Loading…</p>");
+        const res = await fetch(path, { cache:"no-store" });
+        if (!res.ok) throw new Error("HTTP "+res.status);
+        const html = await res.text();
+        injectViewHTML(content, html);
+      } catch (e) {
+        injectViewHTML(content, `<p>Could not load view: <code>${path}</code></p>`);
+        console.error("Failed to load view", e);
+      }
+    }
+
+    function setActiveFromHash() {
+      const hash = location.hash.replace(/^#/, "") || "dashboard";
+      document.querySelectorAll(".dock .nav-item").forEach(a => {
+        const isCurrent = a.getAttribute("data-route") === hash;
+        if (isCurrent) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+      loadView(hash);
+    }
+
+    function showLogoutConfirm() {
+      Swal.fire({
+        title: "Are you sure you want to logout?",
+        text: "You will be redirected to login page.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Logout",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6"
+      }).then(res => {
+        if (res.isConfirmed) {
+          window._doLogout && window._doLogout();
+        }
+      });
+    }
+
+    window.addEventListener("hashchange", setActiveFromHash);
+    document.addEventListener("DOMContentLoaded", setActiveFromHash);
+
+    // Starry background
+    (function(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d');
+      let stars = [], w = 0, h = 0, dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      function rand(min, max){ return Math.random()*(max-min)+min; }
+      function resize(){ w=canvas.width=window.innerWidth*dpr; h=canvas.height=window.innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); stars=[]; const count=Math.round((w*h)/8000); for(let i=0;i<count;i++){ stars.push({x:Math.random()*w,y:Math.random()*h,r:rand(.6,1.8)}); } }
+      function draw(){ ctx.clearRect(0,0,w,h); ctx.fillStyle="#e8f1ff"; for(const s of stars){ ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } requestAnimationFrame(draw); }
+      window.addEventListener("resize", resize, {passive:true}); resize(); draw();
+    })();
+  </script>
+
+  <!-- Auth guard + real sign-out -->
+  <script type="module">
+    import { watchAndGuard, logout } from "./auth.js";
+    watchAndGuard("admin");               // deny non-admins
+    window._doLogout = async () => {      // used by showLogoutConfirm
+      try { await logout(); } catch {}
+    };
+  </script>
+</body>
+</html>
