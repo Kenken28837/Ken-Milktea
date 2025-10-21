@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Products - MoonBucks</title>
+  <link rel="stylesheet" href="../src/styles/base.css">
+  <link rel="stylesheet" href="../src/styles/layout.css">
+  <link rel="stylesheet" href="../src/styles/components.css">
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  
+  <div class="container" style="padding: 2rem;">
+    <h1>Admin Products</h1>
+    <div id="status">Loading...</div>
+    <div id="products" class="products-grid" style="margin-top: 2rem;"></div>
+  </div>
+
+  <script type="module">
+    // Direct Firebase imports
+    import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCHCZ_SAvTxHYjgmRfiCF3fW2SzB3YnFh8",
+      authDomain: "my-moonbucks-firebase-id.firebaseapp.com",
+      projectId: "my-moonbucks-firebase-id",
+      storageBucket: "my-moonbucks-firebase-id.appspot.com",
+      messagingSenderId: "361396425482",
+      appId: "1:361396425482:web:557ee43bc8b5af33da20f3"
+    };
+
+    // Initialize Firebase
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const status = document.getElementById('status');
+    const products = document.getElementById('products');
+
+    async function loadProducts() {
+      try {
+        status.innerHTML = '<div>Loading products...</div>';
+        console.log('Loading products from Firestore...');
+        
+        const productsRef = collection(db, 'products');
+        const snapshot = await getDocs(productsRef);
+        
+        console.log('Products snapshot:', snapshot);
+        console.log('Products count:', snapshot.docs.length);
+        
+        if (snapshot.empty) {
+          status.innerHTML = '<div class="warning">⚠️ No products found in database</div>';
+          products.innerHTML = '<div class="empty-state">No products found. Try adding some products first.</div>';
+          return;
+        }
+        
+        status.innerHTML = `<div class="success">✅ Found ${snapshot.docs.length} products</div>`;
+        
+        let html = '';
+        snapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`Product ${index + 1}:`, { id: doc.id, ...data });
+          
+          html += `
+            <div class="product-card">
+              <div class="product-image">
+                <img src="${data.imageUrl || './Coffee.png'}" alt="${data.name || 'Product'}" loading="lazy" />
+              </div>
+              <div class="product-info">
+                <h3 class="product-name">${data.name || 'Unnamed Product'}</h3>
+                <p class="product-description">${data.description || 'No description'}</p>
+                <div class="product-meta">
+                  <div class="product-price">₱${(data.price || 0).toFixed(2)}</div>
+                  <div class="product-stock">Stock: ${data.stock || 0}</div>
+                </div>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                  ID: ${doc.id}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        products.innerHTML = html;
+        console.log('Products loaded successfully');
+        
+      } catch (error) {
+        console.error('Error loading products:', error);
+        status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+        products.innerHTML = `<div class="empty-state">Error loading products: ${error.message}</div>`;
+      }
+    }
+
+    // Check authentication
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('User authenticated:', user.email);
+        loadProducts();
+      } else {
+        console.log('No user authenticated');
+        status.innerHTML = '<div class="warning">⚠️ Please sign in to view products</div>';
+        products.innerHTML = '<div class="empty-state">Please sign in to view products</div>';
+      }
+    });
+  </script>
+
+  <script>
+    // Stars background
+    (function(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d');
+      let stars = [], w = 0, h = 0;
+      
+      function resize() {
+        w = canvas.width = innerWidth;
+        h = canvas.height = innerHeight;
+        stars = Array.from({length: 100}, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: Math.random() * 1.5 + 0.5
+        }));
+      }
+      
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#e8f1ff';
+        for (const s of stars) {
+          ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      
+      addEventListener('resize', resize);
+      resize();
+      draw();
+    })();
+  </script>
+</body>
+</html>

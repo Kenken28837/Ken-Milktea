@@ -1,0 +1,114 @@
+<!-- Admin Ongoing Orders -->
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>User</th>
+        <th>Total</th>
+        <th>Proof</th>
+        <th>Update</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="ordersTableBody">
+      <tr>
+        <td colspan="6" class="text-center">Loading...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+  import { db } from '../../src/config/firebase.js';
+  import { collection, onSnapshot, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+  import { subscribeToAllOrders } from '../../src/services/orders.js';
+  import { formatCurrency, showToast } from '../../src/utils/helpers.js';
+
+  const ordersTableBody = document.getElementById('ordersTableBody');
+  const staticProofImage = "Payment.png"; // Your local or hosted image path
+
+  subscribeToAllOrders((orders) => {
+    if (orders.length === 0) {
+      ordersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No ongoing orders yet.</td></tr>';
+      return;
+    }
+
+    const rows = orders.map(order => {
+      const status = order.deliveryStatus || "pending";
+      
+      // Static image always used
+      const proofHTML = `
+        <a href="${staticProofImage}" target="_blank">
+          <img src="${staticProofImage}" alt="Proof" style="max-height: 60px; border-radius: 6px;" />
+        </a>
+      `;
+
+      return `
+        <tr data-row="${order.id}">
+          <td><code>${order.id}</code></td>
+          <td>${order.userId || "guest"}</td>
+          <td><strong>${formatCurrency(order.total || 0)}</strong></td>
+          <td>${proofHTML}</td>
+          <td>
+            <select data-uid="${order.id}" class="input" style="width: auto;">
+              <option value="pending" ${status === "pending" ? "selected" : ""}>Pending</option>
+              <option value="on_the_way" ${status === "on_the_way" ? "selected" : ""}>On the way</option>
+              <option value="delivered" ${status === "delivered" ? "selected" : ""}>Delivered</option>
+              <option value="cancelled" ${status === "cancelled" ? "selected" : ""}>Cancelled</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-danger" data-uid="${order.id}">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    ordersTableBody.innerHTML = rows;
+  });
+
+  // Handle status updates
+  ordersTableBody.addEventListener('change', async (e) => {
+    if (e.target.tagName !== 'SELECT') return;
+    
+    const orderId = e.target.dataset.uid;
+    const newStatus = e.target.value;
+
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        deliveryStatus: newStatus
+      });
+      showToast('Order status updated ✅', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update status ❌', 'error');
+    }
+  });
+
+  // Handle order deletion
+  ordersTableBody.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-danger')) return;
+    
+    const orderId = e.target.dataset.uid;
+
+    const confirm = await Swal.fire({
+      title: "Delete this order?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it",
+      cancelButtonText: "Cancel"
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+      showToast('Order has been removed 🗑️', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete order ❌', 'error');
+    }
+  });
+</script>

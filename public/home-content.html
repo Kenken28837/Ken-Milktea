@@ -1,0 +1,83 @@
+<!-- Home Page Content -->
+<section class="hero">
+  <div class="hero-text">
+    <h4 class="tagline">Best Coffee</h4>
+    <h1>Make your day great with our special coffee!</h1>
+    <p>
+      Welcome to our coffee paradise, where every bean tells a story and every cup sparks joy.
+    </p>
+    <div class="hero-buttons">
+      <button onclick="loadPage('menu.html')" class="btn btn-primary">Order Now</button>
+      <button onclick="loadPage('about.html')" class="btn btn-secondary">About Us</button>
+    </div>
+  </div>
+
+  <!-- Carousel -->
+  <div class="carousel">
+    <div class="slides" id="carouselSlides"></div>
+    <button class="carousel-nav prev" onclick="prevSlide()">&#10094;</button>
+    <button class="carousel-nav next" onclick="nextSlide()">&#10095;</button>
+    <div class="carousel-dots" id="carouselDots"></div>
+  </div>
+</section>
+
+<script type="module">
+  import { db } from '../../src/config/firebase.js';
+  import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+  const slidesEl = document.getElementById('carouselSlides');
+  const dotsEl = document.getElementById('carouselDots');
+
+  let currentSlide = 0;
+  let products = [];
+
+  async function loadCarousel() {
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      products = snap.docs.map(d => d.data()).filter(p => p.imageUrl);
+
+      if (products.length === 0) {
+        slidesEl.innerHTML = '<img src="../../Coffee.png" alt="Coffee" class="active">';
+        return;
+      }
+
+      slidesEl.innerHTML = products.map((p, i) =>
+        `<img src="${p.imageUrl}" alt="${p.name}" class="${i === 0 ? 'active' : ''}">`
+      ).join('');
+
+      dotsEl.innerHTML = products.map((_, i) =>
+        `<span class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></span>`
+      ).join('');
+
+      setInterval(nextSlide, 5000);
+    } catch (error) {
+      console.error('Error loading carousel:', error);
+      slidesEl.innerHTML = '<img src="../../Coffee.png" alt="Coffee" class="active">';
+    }
+  }
+
+  function updateCarousel() {
+    const imgs = slidesEl.querySelectorAll('img');
+    imgs.forEach((img, i) => img.classList.toggle('active', i === currentSlide));
+    dotsEl.querySelectorAll('.carousel-dot').forEach((dot, i) => 
+      dot.classList.toggle('active', i === currentSlide)
+    );
+  }
+
+  window.nextSlide = function() {
+    currentSlide = (currentSlide + 1) % products.length;
+    updateCarousel();
+  };
+
+  window.prevSlide = function() {
+    currentSlide = (currentSlide - 1 + products.length) % products.length;
+    updateCarousel();
+  };
+
+  window.goToSlide = function(i) {
+    currentSlide = i;
+    updateCarousel();
+  };
+
+  loadCarousel();
+</script>

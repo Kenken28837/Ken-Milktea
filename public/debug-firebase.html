@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Debug - MoonBucks</title>
+  <link rel="stylesheet" href="../src/styles/base.css">
+  <link rel="stylesheet" href="../src/styles/layout.css">
+  <link rel="stylesheet" href="../src/styles/components.css">
+  <style>
+    .debug-section { margin: 1rem 0; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; }
+    .debug-section h3 { margin-top: 0; color: var(--primary); }
+    .success { color: var(--success); }
+    .error { color: var(--danger); }
+    .warning { color: var(--warning); }
+    pre { background: var(--bg-primary); padding: 1rem; border-radius: 4px; overflow-x: auto; }
+    .test-button { margin: 0.5rem; }
+  </style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  
+  <div class="container" style="padding: 2rem;">
+    <h1>Firebase Debug Console</h1>
+    
+    <div class="debug-section">
+      <h3>1. Firebase Configuration</h3>
+      <div id="configStatus">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+      <h3>2. Authentication Status</h3>
+      <div id="authStatus">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+      <h3>3. Firestore Connection Test</h3>
+      <div id="firestoreStatus">Loading...</div>
+      <button onclick="testFirestore()" class="btn btn-primary test-button">Test Firestore Connection</button>
+    </div>
+    
+    <div class="debug-section">
+      <h3>4. Products Collection</h3>
+      <div id="productsStatus">Loading...</div>
+      <button onclick="loadProducts()" class="btn btn-primary test-button">Load Products</button>
+    </div>
+    
+    <div class="debug-section">
+      <h3>5. Add Test Product</h3>
+      <button onclick="addTestProduct()" class="btn btn-success test-button">Add Test Product</button>
+      <div id="addProductStatus"></div>
+    </div>
+    
+    <div class="debug-section">
+      <h3>6. Console Logs</h3>
+      <div id="consoleLogs"></div>
+      <button onclick="clearLogs()" class="btn btn-secondary test-button">Clear Logs</button>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+      <button onclick="location.href='menu.html'" class="btn btn-primary">Test Menu Page</button>
+      <button onclick="location.href='admin.html'" class="btn btn-primary">Test Admin Page</button>
+      <button onclick="location.href='index.html'" class="btn btn-secondary">Back to Login</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../src/config/firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+    import { collection, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+    const configStatus = document.getElementById('configStatus');
+    const authStatus = document.getElementById('authStatus');
+    const firestoreStatus = document.getElementById('firestoreStatus');
+    const productsStatus = document.getElementById('productsStatus');
+    const addProductStatus = document.getElementById('addProductStatus');
+    const consoleLogs = document.getElementById('consoleLogs');
+
+    let logs = [];
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = `[${timestamp}] ${message}`;
+      logs.push({ message: logEntry, type });
+      console.log(logEntry);
+      updateConsoleLogs();
+    }
+
+    function updateConsoleLogs() {
+      consoleLogs.innerHTML = logs.map(log => 
+        `<div class="${log.type}">${log.message}</div>`
+      ).join('');
+    }
+
+    // Test Firebase configuration
+    try {
+      log('Testing Firebase configuration...');
+      console.log('Auth:', auth);
+      console.log('DB:', db);
+      configStatus.innerHTML = '<div class="success">✅ Firebase configuration loaded successfully</div>';
+      log('Firebase configuration loaded successfully', 'success');
+    } catch (error) {
+      configStatus.innerHTML = `<div class="error">❌ Firebase configuration failed: ${error.message}</div>`;
+      log(`Firebase configuration failed: ${error.message}`, 'error');
+    }
+
+    // Test authentication
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authStatus.innerHTML = `
+          <div class="success">✅ User authenticated</div>
+          <div>UID: ${user.uid}</div>
+          <div>Email: ${user.email}</div>
+          <div>Verified: ${user.emailVerified}</div>
+        `;
+        log(`User authenticated: ${user.email}`, 'success');
+      } else {
+        authStatus.innerHTML = '<div class="warning">⚠️ No user authenticated</div>';
+        log('No user authenticated', 'warning');
+      }
+    });
+
+    // Test Firestore connection
+    window.testFirestore = async function() {
+      try {
+        log('Testing Firestore connection...');
+        firestoreStatus.innerHTML = '<div>Testing...</div>';
+        
+        // Try to read from a test collection
+        const testRef = collection(db, 'test');
+        const snapshot = await getDocs(testRef);
+        
+        firestoreStatus.innerHTML = '<div class="success">✅ Firestore connection successful</div>';
+        log('Firestore connection successful', 'success');
+      } catch (error) {
+        firestoreStatus.innerHTML = `<div class="error">❌ Firestore connection failed: ${error.message}</div>`;
+        log(`Firestore connection failed: ${error.message}`, 'error');
+      }
+    };
+
+    // Load products
+    window.loadProducts = async function() {
+      try {
+        log('Loading products from Firestore...');
+        productsStatus.innerHTML = '<div>Loading products...</div>';
+        
+        const productsRef = collection(db, 'products');
+        const snapshot = await getDocs(productsRef);
+        
+        log(`Products snapshot received: ${snapshot.docs.length} documents`);
+        
+        if (snapshot.empty) {
+          productsStatus.innerHTML = '<div class="warning">⚠️ No products found in database</div>';
+          log('No products found in database', 'warning');
+          return;
+        }
+        
+        let html = '<div class="success">✅ Products loaded successfully</div>';
+        html += '<div class="products-grid" style="margin-top: 1rem;">';
+        
+        snapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          log(`Product ${index + 1}: ${data.name || 'Unnamed'} - ₱${data.price || 0}`);
+          
+          html += `
+            <div class="product-card">
+              <div class="product-image">
+                <img src="${data.imageUrl || './Coffee.png'}" alt="${data.name || 'Product'}" style="width: 100%; height: 150px; object-fit: cover;" />
+              </div>
+              <div class="product-info">
+                <h4>${data.name || 'Unnamed Product'}</h4>
+                <p>${data.description || 'No description'}</p>
+                <div class="product-meta">
+                  <div class="product-price">₱${(data.price || 0).toFixed(2)}</div>
+                  <div class="product-stock">Stock: ${data.stock || 0}</div>
+                </div>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                  ID: ${doc.id}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+        productsStatus.innerHTML = html;
+        log(`Products loaded successfully: ${snapshot.docs.length} products`, 'success');
+        
+      } catch (error) {
+        productsStatus.innerHTML = `<div class="error">❌ Error loading products: ${error.message}</div>`;
+        log(`Error loading products: ${error.message}`, 'error');
+      }
+    };
+
+    // Add test product
+    window.addTestProduct = async function() {
+      try {
+        log('Adding test product...');
+        addProductStatus.innerHTML = '<div>Adding test product...</div>';
+        
+        const testProduct = {
+          name: 'Test Coffee',
+          description: 'A test coffee product for debugging',
+          price: 150.00,
+          stock: 10,
+          imageUrl: './Coffee.png',
+          active: true,
+          createdAt: serverTimestamp()
+        };
+        
+        const docRef = await addDoc(collection(db, 'products'), testProduct);
+        
+        addProductStatus.innerHTML = `
+          <div class="success">✅ Test product added successfully</div>
+          <div>Product ID: ${docRef.id}</div>
+        `;
+        log(`Test product added successfully with ID: ${docRef.id}`, 'success');
+        
+      } catch (error) {
+        addProductStatus.innerHTML = `<div class="error">❌ Error adding test product: ${error.message}</div>`;
+        log(`Error adding test product: ${error.message}`, 'error');
+      }
+    };
+
+    // Clear logs
+    window.clearLogs = function() {
+      logs = [];
+      updateConsoleLogs();
+    };
+
+    // Initialize
+    log('Firebase debug page loaded');
+  </script>
+
+  <script>
+    // Stars background
+    (function(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d');
+      let stars = [], w = 0, h = 0;
+      
+      function resize() {
+        w = canvas.width = innerWidth;
+        h = canvas.height = innerHeight;
+        stars = Array.from({length: 100}, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: Math.random() * 1.5 + 0.5
+        }));
+      }
+      
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#e8f1ff';
+        for (const s of stars) {
+          ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      
+      addEventListener('resize', resize);
+      resize();
+      draw();
+    })();
+  </script>
+</body>
+</html>

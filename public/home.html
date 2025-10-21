@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoonBucks - Coffee Paradise</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../src/styles/base.css">
+  <link rel="stylesheet" href="../src/styles/layout.css">
+  <link rel="stylesheet" href="../src/styles/components.css">
+</head>
+<body>
+  <!-- Starry Background -->
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <!-- Header -->
+  <header class="header">
+    <a class="brand" href="#" onclick="loadPage('home.html')">
+      <img src="../Moon.png" alt="MoonBucks" width="40" height="40" />
+      <span>MoonBucks</span>
+    </a>
+    <nav class="nav">
+      <a href="#" onclick="loadPage('home.html')">HOME</a>
+      <a href="#" onclick="loadPage('menu.html')">MENU</a>
+      <a href="#" onclick="loadPage('about.html')">ABOUT US</a>
+      <a href="#" onclick="loadPage('myorders.html')">MY ORDERS</a>
+    </nav>
+    <a href="#" class="btn btn-secondary" onclick="logout()">Logout</a>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div id="content">Loading...</div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <p>🌙 &copy; 2025 MoonBucks. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script type="module">
+    import { logout, watchAuthState, getCurrentUser } from '../src/services/auth.js';
+    import { showToast } from '../src/utils/helpers.js';
+
+    // Global functions
+    window.loadPage = function(page) {
+      fetch(page)
+        .then(res => res.text())
+        .then(data => {
+          const content = document.getElementById('content');
+          content.innerHTML = data;
+          
+          // Re-execute scripts in loaded content
+          content.querySelectorAll('script').forEach(oldScript => {
+            const newScript = document.createElement('script');
+            if (oldScript.type === 'module') newScript.type = 'module';
+            if (oldScript.src) newScript.src = oldScript.src;
+            else newScript.textContent = oldScript.textContent;
+            document.body.appendChild(newScript);
+          });
+        })
+        .catch(err => {
+          document.getElementById('content').innerHTML = '<div class="empty-state">Error loading page</div>';
+          console.error(err);
+          showToast('Error loading page', 'error');
+        });
+    };
+
+    window.logout = logout;
+    window.showToast = showToast;
+
+    // Check authentication state and redirect accordingly
+    watchAuthState(async (user) => {
+      if (!user) {
+        // No user logged in, redirect to login
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // User is logged in, check their role and redirect
+      try {
+        const userInfo = await getCurrentUser();
+        if (userInfo.role === 'admin') {
+          window.location.href = 'admin.html';
+        } else {
+          // Load home page for regular users
+          loadPage('home-content.html');
+        }
+      } catch (error) {
+        console.error('Error getting user info:', error);
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+
+  <!-- Starry Background Animation -->
+  <script>
+    (function(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d');
+      let stars = [], w = 0, h = 0, dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      
+      function rand(min, max){ 
+        return Math.random() * (max - min) + min; 
+      }
+      
+      function resize(){
+        w = canvas.width = window.innerWidth * dpr;
+        h = canvas.height = window.innerHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        stars = [];
+        const count = Math.round((w * h) / 8000);
+        for (let i = 0; i < count; i++) {
+          stars.push({ x: Math.random() * w, y: Math.random() * h, r: rand(0.6, 1.8) });
+        }
+      }
+      
+      function draw(){
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#e8f1ff';
+        for (const s of stars) {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      
+      window.addEventListener('resize', resize, { passive: true });
+      resize();
+      draw();
+    })();
+  </script>
+</body>
+</html>

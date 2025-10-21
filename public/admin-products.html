@@ -1,0 +1,148 @@
+<!-- Admin Products Management -->
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody id="productsTableBody">
+      <tr>
+        <td colspan="3" class="text-center">Loading...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+  // Direct Firebase imports
+  import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getAuth } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+  import { getFirestore, collection, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHCZ_SAvTxHYjgmRfiCF3fW2SzB3YnFh8",
+    authDomain: "my-moonbucks-firebase-id.firebaseapp.com",
+    projectId: "my-moonbucks-firebase-id",
+    storageBucket: "my-moonbucks-firebase-id.appspot.com",
+    messagingSenderId: "361396425482",
+    appId: "1:361396425482:web:557ee43bc8b5af33da20f3"
+  };
+
+  // Initialize Firebase
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Simple utility functions
+  function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP'
+    }).format(amount);
+  }
+
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#3b82f6'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      font-weight: 500;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  const productsTableBody = document.getElementById('productsTableBody');
+
+  async function loadProducts() {
+    try {
+      console.log('Loading products from Firestore...');
+      productsTableBody.innerHTML = '<tr><td colspan="3" class="text-center">Loading...</td></tr>';
+      
+      const productsRef = collection(db, 'products');
+      const snapshot = await getDocs(productsRef);
+      
+      console.log('Products snapshot:', snapshot);
+      console.log('Products count:', snapshot.docs.length);
+      
+      if (snapshot.empty) {
+        productsTableBody.innerHTML = '<tr><td colspan="3" class="text-center">No products found</td></tr>';
+        return;
+      }
+      
+      const rows = snapshot.docs.map(doc => {
+        const product = { id: doc.id, ...doc.data() };
+        console.log('Product:', product);
+        const stock = Number.isFinite(product.stock) ? product.stock : 0;
+        return `
+          <tr>
+            <td>${product.name || ""}</td>
+            <td>${formatCurrency(product.price || 0)}</td>
+            <td>
+              <div class="flex items-center gap-sm">
+                <input type="number" min="0" value="${stock}" data-uid="${product.id}" data-current="${stock}" class="input" style="width: 80px;" />
+                <button class="btn btn-primary" data-uid="${product.id}">Update</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      productsTableBody.innerHTML = rows;
+      console.log('Products loaded successfully');
+      
+    } catch (error) {
+      console.error('Error loading products:', error);
+      productsTableBody.innerHTML = '<tr><td colspan="3" class="text-center">Error loading products</td></tr>';
+    }
+  }
+
+  // Load products when page loads
+  loadProducts();
+
+  // Handle stock updates
+  productsTableBody.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-primary')) return;
+
+    const productId = e.target.dataset.uid;
+    const input = productsTableBody.querySelector(`input[data-uid="${productId}"]`);
+    if (!input) return;
+
+    const newStock = parseInt(input.value, 10);
+    const currentStock = parseInt(input.getAttribute('data-current'), 10);
+
+    if (!auth.currentUser) {
+      showToast('You must sign in as admin to update stock.', 'error');
+      return;
+    }
+
+    if (isNaN(newStock) || newStock < 0) {
+      showToast('Please enter a valid stock value.', 'warning');
+      return;
+    }
+
+    if (newStock === currentStock) {
+      showToast('Stock is already set to this value.', 'info');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'products', productId), { stock: newStock });
+      showToast('Stock updated successfully ✅', 'success');
+    } catch (err) {
+      console.error('Update error:', err);
+      showToast('❌ Failed to update stock (check rules).', 'error');
+    }
+  });
+</script>

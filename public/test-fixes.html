@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Fixes - MoonBucks</title>
+  <link rel="stylesheet" href="../src/styles/base.css">
+  <link rel="stylesheet" href="../src/styles/layout.css">
+  <link rel="stylesheet" href="../src/styles/components.css">
+  <style>
+    .test-section { margin: 2rem 0; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; }
+    .test-section h3 { margin-top: 0; color: var(--primary); }
+    .test-button { margin: 0.5rem; }
+  </style>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  
+  <div class="container" style="padding: 2rem;">
+    <h1>Test Product Display Fixes</h1>
+    
+    <div class="test-section">
+      <h3>🔧 Fixed Pages</h3>
+      <p>Both client and admin sides have been fixed to use direct Firebase imports instead of the problematic modular structure.</p>
+      
+      <div style="margin: 1rem 0;">
+        <button onclick="location.href='menu.html'" class="btn btn-primary test-button">Test Menu Page (Client)</button>
+        <button onclick="location.href='admin.html#products'" class="btn btn-primary test-button">Test Admin Products</button>
+        <button onclick="location.href='admin-products-simple.html'" class="btn btn-success test-button">Test Simple Admin Products</button>
+        <button onclick="location.href='debug-firebase.html'" class="btn btn-secondary test-button">Debug Firebase</button>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h3>✅ What Was Fixed</h3>
+      <ul>
+        <li><strong>Menu Page:</strong> Replaced modular imports with direct Firebase imports</li>
+        <li><strong>Admin Products:</strong> Fixed admin-products.html to use direct Firebase imports</li>
+        <li><strong>Utility Functions:</strong> Added inline utility functions to avoid import issues</li>
+        <li><strong>Error Handling:</strong> Added comprehensive console logging for debugging</li>
+      </ul>
+    </div>
+    
+    <div class="test-section">
+      <h3>🔍 How to Test</h3>
+      <ol>
+        <li><strong>Open browser console</strong> to see detailed logging</li>
+        <li><strong>Test Menu Page:</strong> Navigate to menu.html and check if products display</li>
+        <li><strong>Test Admin Products:</strong> Go to admin.html#products and verify products show</li>
+        <li><strong>Check Console:</strong> Look for "Loading products..." and "Products loaded successfully" messages</li>
+      </ol>
+    </div>
+    
+    <div class="test-section">
+      <h3>📋 Expected Console Output</h3>
+      <pre style="background: var(--bg-primary); padding: 1rem; border-radius: 4px; overflow-x: auto;">
+Loading products from Firestore...
+Products snapshot: [object]
+Products count: [number]
+Product: [object with product data]
+Products loaded successfully
+      </pre>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+      <button onclick="location.href='index.html'" class="btn btn-secondary">Back to Login</button>
+    </div>
+  </div>
+
+  <script>
+    // Stars background
+    (function(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d');
+      let stars = [], w = 0, h = 0;
+      
+      function resize() {
+        w = canvas.width = innerWidth;
+        h = canvas.height = innerHeight;
+        stars = Array.from({length: 100}, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: Math.random() * 1.5 + 0.5
+        }));
+      }
+      
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#e8f1ff';
+        for (const s of stars) {
+          ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      
+      addEventListener('resize', resize);
+      resize();
+      draw();
+    })();
+  </script>
+</body>
+</html>

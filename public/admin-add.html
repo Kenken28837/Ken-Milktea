@@ -1,0 +1,71 @@
+<!-- Admin Add Product -->
+<div class="form-container">
+  <h1>Add New Product</h1>
+  <form id="addProductForm">
+    <div class="form-group">
+      <label for="name">Product Name</label>
+      <input type="text" id="name" class="input" placeholder="Enter product name" required />
+    </div>
+
+    <div class="form-group">
+      <label for="price">Price (₱)</label>
+      <input type="number" id="price" class="input" placeholder="Enter price" step="0.01" min="0" required />
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" class="input" placeholder="Enter product description" required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="stock">Stock</label>
+      <input type="number" id="stock" class="input" placeholder="Enter stock quantity" min="0" required />
+    </div>
+
+    <div class="form-group">
+      <label for="imageUrl">Image URL</label>
+      <input type="url" id="imageUrl" class="input" placeholder="https://example.com/product.jpg" required />
+    </div>
+
+    <button type="submit" id="submitBtn" class="btn btn-primary">➕ Add Product</button>
+  </form>
+</div>
+
+<script type="module">
+  import { addProduct, validateProduct } from '../../src/services/products.js';
+  import { showToast } from '../../src/utils/helpers.js';
+
+  const form = document.getElementById('addProductForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+
+    try {
+      const productData = {
+        name: document.getElementById('name').value.trim(),
+        price: document.getElementById('price').value,
+        description: document.getElementById('description').value.trim(),
+        stock: document.getElementById('stock').value,
+        imageUrl: document.getElementById('imageUrl').value.trim()
+      };
+
+      // Validate product data
+      const validation = validateProduct(productData);
+      if (!validation.isValid) {
+        showToast(validation.errors[0], 'error');
+        return;
+      }
+
+      await addProduct(productData);
+      showToast('Product added successfully!', 'success');
+      form.reset();
+    } catch (err) {
+      console.error('Error adding product:', err);
+      showToast(err.message || 'Failed to add product', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>

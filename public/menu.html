@@ -1,0 +1,494 @@
+<!-- Menu Page Content -->
+<div class="container">
+  <div class="flex items-center justify-between" style="margin-bottom: 2rem;">
+    <h1>Menu</h1>
+    <button id="openCart" class="btn btn-secondary">
+      🛒 <span id="cartCount" class="badge">0</span>
+    </button>
+  </div>
+  
+  <div id="productsGrid" class="products-grid" aria-live="polite"></div>
+</div>
+
+<!-- Cart Panel -->
+<div id="overlay" class="overlay" role="presentation"></div>
+<aside id="cart" class="cart-panel" aria-label="Shopping cart" aria-hidden="true">
+  <div class="cart-header">
+    <strong>My Cart</strong>
+    <button id="closeCart" class="btn btn-secondary">Close</button>
+  </div>
+  <div id="cartList" class="cart-list"></div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span>Total</span>
+      <span id="cartTotal">₱0.00</span>
+    </div>
+    <button id="checkoutBtn" class="btn btn-primary">Checkout</button>
+    <button id="signinBtn" class="btn btn-secondary" style="display:none;">Sign In</button>
+  </div>
+</aside>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="modal" aria-hidden="true" aria-labelledby="rcptTitle">
+  <div class="modal-content" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <strong id="rcptTitle">Receipt</strong>
+      <button id="closeReceiptBtn" class="btn btn-secondary">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="flex justify-between">
+        <div>
+          <div><strong>Order ID:</strong> <span id="rcptOrderId">—</span></div>
+          <div class="text-muted">Created: <span id="rcptCreated">—</span></div>
+        </div>
+      </div>
+      <div id="rcptItems" class="orders-grid"></div>
+      <div class="flex justify-between" style="font-weight: 700;">
+        <span>Total</span>
+        <span id="rcptTotal">₱0.00</span>
+      </div>
+
+      <!-- Proof of Payment -->
+      <div class="form-group">
+        <div><strong>Submit proof of payment</strong> <span class="text-muted">(image only)</span></div>
+        <input id="proofFile" type="file" accept="image/*" class="input" />
+        <div class="flex justify-between items-center">
+          <small class="text-muted" id="proofStatus">No file selected</small>
+          <button id="submitOrderBtn" class="btn btn-primary" disabled>Submit Order</button>
+        </div>
+        <div id="proofPreview" class="text-muted"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // Direct Firebase imports
+  import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+  import { getFirestore, collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+  import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js';
+  // Simple utility functions
+  function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP'
+    }).format(amount);
+  }
+
+  function showToast(message, type = 'info') {
+    // Simple toast implementation
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#3b82f6'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      font-weight: 500;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHCZ_SAvTxHYjgmRfiCF3fW2SzB3YnFh8",
+    authDomain: "my-moonbucks-firebase-id.firebaseapp.com",
+    projectId: "my-moonbucks-firebase-id",
+    storageBucket: "my-moonbucks-firebase-id.appspot.com",
+    messagingSenderId: "361396425482",
+    appId: "1:361396425482:web:557ee43bc8b5af33da20f3"
+  };
+
+  // Initialize Firebase
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // DOM elements
+  const productsGrid = document.getElementById('productsGrid');
+  const cartPanel = document.getElementById('cart');
+  const overlay = document.getElementById('overlay');
+  const openCartBtn = document.getElementById('openCart');
+  const closeCartBtn = document.getElementById('closeCart');
+  const cartCount = document.getElementById('cartCount');
+  const cartList = document.getElementById('cartList');
+  const cartTotal = document.getElementById('cartTotal');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+  const signinBtn = document.getElementById('signinBtn');
+  const rcptOrderId = document.getElementById('rcptOrderId');
+  const rcptCreated = document.getElementById('rcptCreated');
+  const rcptItems = document.getElementById('rcptItems');
+  const rcptTotal = document.getElementById('rcptTotal');
+  const proofFile = document.getElementById('proofFile');
+  const proofStatus = document.getElementById('proofStatus');
+  const submitOrderBtn = document.getElementById('submitOrderBtn');
+  const proofPreview = document.getElementById('proofPreview');
+  const closeReceiptBtn = document.getElementById('closeReceiptBtn');
+
+  // Simple cart implementation
+  let cart = [];
+  let lastOrder = null;
+  const productMap = new Map();
+  const CART_KEY = 'moonbucks_cart_v1';
+
+  // Initialize
+  loadCart();
+  updateCartBadge();
+  renderCart();
+  await renderProducts();
+
+  // Auth state listener
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      checkoutBtn.style.display = 'block';
+      signinBtn.style.display = 'none';
+    } else {
+      checkoutBtn.style.display = 'none';
+      signinBtn.style.display = 'block';
+    }
+  });
+
+  // Event listeners
+  openCartBtn.addEventListener('click', openCart);
+  closeCartBtn.addEventListener('click', closeCart);
+  overlay.addEventListener('click', () => { closeCart(); closeReceipt(); });
+  checkoutBtn.addEventListener('click', onCheckout);
+  signinBtn.addEventListener('click', () => location.href = 'Login.html');
+  proofFile.addEventListener('change', onFileSelect);
+  submitOrderBtn.addEventListener('click', attachProof);
+  closeReceiptBtn.addEventListener('click', closeReceipt);
+
+  // Load cart from localStorage
+  function loadCart() {
+    try {
+      cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+    } catch {
+      cart = [];
+    }
+  }
+
+  // Save cart to localStorage
+  function saveCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }
+
+  // Products
+  async function renderProducts() {
+    console.log('Loading products...');
+    productsGrid.innerHTML = '<div class="empty-state">Loading products...</div>';
+    productMap.clear();
+    
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      console.log('Products snapshot:', snap);
+      console.log('Products count:', snap.docs.length);
+      
+      if (snap.empty) {
+        productsGrid.innerHTML = '<div class="empty-state">No products found</div>';
+        return;
+      }
+      
+      productsGrid.innerHTML = '';
+      
+      for (const d of snap.docs) {
+        const product = normalizeProduct({ id: d.id, ...d.data() });
+        console.log('Product:', product);
+        productMap.set(product.id, product);
+        
+        // Create simple product card instead of using ProductCard component
+        const productCard = createSimpleProductCard(product);
+        productsGrid.appendChild(productCard);
+      }
+      
+      console.log('Products loaded successfully');
+    } catch (err) {
+      console.error('Error loading products:', err);
+      productsGrid.innerHTML = '<div class="empty-state">Failed to load products</div>';
+    }
+  }
+
+  function normalizeProduct(p) {
+    return {
+      id: p.id,
+      name: String(p.name ?? 'Unnamed Product'),
+      description: String(p.description ?? ''),
+      price: typeof p.price === 'number' ? p.price : parseFloat(p.price || '0') || 0,
+      imageUrl: p.imageUrl || './Coffee.png',
+      stock: typeof p.stock === 'number' ? p.stock : parseInt(p.stock || '0', 10)
+    };
+  }
+
+  // Create simple product card
+  function createSimpleProductCard(product) {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-image">
+        <img src="${product.imageUrl}" alt="${product.name}" loading="lazy" />
+        ${product.stock <= 0 ? '<div class="out-of-stock">Out of Stock</div>' : ''}
+      </div>
+      <div class="product-info">
+        <h3 class="product-name">${product.name}</h3>
+        <p class="product-description">${product.description}</p>
+        <div class="product-meta">
+          <div class="product-price">${formatCurrency(product.price)}</div>
+          <div class="product-stock ${product.stock <= 0 ? 'out' : ''}">
+            ${product.stock <= 0 ? 'Out of stock' : `${product.stock} left`}
+          </div>
+        </div>
+        <div class="product-actions">
+          ${product.stock <= 0 ? 
+            '<button class="btn btn-disabled" disabled>Unavailable</button>' : 
+            '<button class="btn btn-primary" onclick="addToCart(\'' + product.id + '\')">Add to Cart</button>'
+          }
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  // Add to cart function
+  window.addToCart = function(productId) {
+    const product = productMap.get(productId);
+    if (!product) return;
+    
+    const existingItem = cart.find(item => item.id === productId);
+    if (existingItem) {
+      if (existingItem.qty >= product.stock) {
+        showToast('No more stock available');
+        return;
+      }
+      existingItem.qty += 1;
+    } else {
+      cart.push({
+        id: productId,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        qty: 1
+      });
+    }
+    
+    saveCart();
+    updateCartBadge();
+    renderCart();
+    showToast('Added to cart');
+  };
+
+  // Cart functions
+  function updateCartBadge() {
+    const count = cart.reduce((total, item) => total + item.qty, 0);
+    cartCount.textContent = count.toString();
+  }
+
+  function renderCart() {
+    cartList.innerHTML = '';
+    
+    if (cart.length === 0) {
+      cartList.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
+      cartTotal.textContent = formatCurrency(0);
+      return;
+    }
+    
+    cart.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'cart-item';
+      itemEl.innerHTML = `
+        <img src="${item.imageUrl}" alt="${item.name}" />
+        <div class="item-details">
+          <div class="item-name">${item.name}</div>
+          <div class="item-price">${formatCurrency(item.price)}</div>
+          <div class="item-quantity">× ${item.qty}</div>
+        </div>
+        <button class="remove-item" onclick="removeFromCart('${item.id}')">×</button>
+      `;
+      cartList.appendChild(itemEl);
+    });
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    cartTotal.textContent = formatCurrency(total);
+  }
+
+  // Remove from cart function
+  window.removeFromCart = function(productId) {
+    cart = cart.filter(item => item.id !== productId);
+    saveCart();
+    updateCartBadge();
+    renderCart();
+    showToast('Removed from cart');
+  };
+
+  // Checkout
+  async function onCheckout() {
+    const user = auth.currentUser;
+    if (!user) {
+      showToast('Please sign in first', 'error');
+      return;
+    }
+    
+    if (cart.length === 0) {
+      showToast('Cart is empty', 'error');
+      return;
+    }
+
+    checkoutBtn.disabled = true;
+    
+    try {
+      const order = {
+        userId: user.uid,
+        items: cart.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          qty: item.qty,
+          imageUrl: item.imageUrl
+        })),
+        total: cart.reduce((sum, item) => sum + (item.price * item.qty), 0),
+        status: 'ongoing',
+        paymentStatus: 'pending',
+        deliveryStatus: 'pending',
+        createdAt: serverTimestamp()
+      };
+
+      const docRef = await addDoc(collection(db, 'orders'), order);
+      
+      // Update stock
+      for (const item of cart) {
+        await updateDoc(doc(db, 'products', item.id), { stock: increment(-item.qty) });
+      }
+
+      lastOrder = { id: docRef.id, ...order, createdAtLocal: new Date() };
+      cart = [];
+      saveCart();
+      updateCartBadge();
+      renderCart();
+      closeCart();
+      populateReceipt(lastOrder);
+      openReceipt();
+      showToast('Order placed. Submit proof to confirm.', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Checkout failed', 'error');
+    } finally {
+      checkoutBtn.disabled = false;
+    }
+  }
+
+  function populateReceipt(order) {
+    rcptOrderId.textContent = order.id;
+    rcptCreated.textContent = order.createdAtLocal.toLocaleString();
+    rcptTotal.textContent = formatCurrency(order.total);
+    rcptItems.textContent = '';
+    
+    for (const item of order.items) {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-md';
+      row.innerHTML = `
+        <img src="${item.imageUrl || './Coffee.png'}" alt="${item.name}" style="width: 48px; height: 48px; border-radius: 8px;" />
+        <div class="flex-1">${item.name}</div>
+        <div class="text-muted">× ${item.qty}</div>
+        <div>${formatCurrency(item.price * item.qty)}</div>
+      `;
+      rcptItems.append(row);
+    }
+
+    proofFile.value = '';
+    submitOrderBtn.disabled = true;
+    proofStatus.textContent = 'No file selected';
+    proofPreview.textContent = '';
+  }
+
+  // Proof upload
+  function onFileSelect() {
+    const file = proofFile.files?.[0];
+    if (!file) {
+      submitOrderBtn.disabled = true;
+      proofStatus.textContent = 'No file selected';
+      proofPreview.textContent = '';
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      submitOrderBtn.disabled = true;
+      proofStatus.textContent = 'Only images allowed';
+      proofPreview.textContent = '';
+      return;
+    }
+    
+    const url = URL.createObjectURL(file);
+    proofPreview.innerHTML = `<img src="${url}" alt="Preview" style="max-width:120px;border-radius:8px;">`;
+    proofStatus.textContent = `${file.name} (${Math.round(file.size/1024)} KB)`;
+    submitOrderBtn.disabled = false;
+  }
+
+  async function attachProof() {
+    if (!lastOrder) {
+      showToast('No order', 'error');
+      return;
+    }
+    
+    const file = proofFile.files?.[0];
+    if (!file) {
+      showToast('Select an image first', 'error');
+      return;
+    }
+    
+    try {
+      submitOrderBtn.disabled = true;
+      showToast('Uploading proof...', 'info');
+
+      const proofUrl = await uploadPaymentProof(file, lastOrder.id);
+      await updatePaymentProof(lastOrder.id, proofUrl);
+
+      proofPreview.innerHTML = `<img src="${proofUrl}" alt="Proof" style="max-width:120px;border-radius:8px;">`;
+      proofStatus.textContent = 'Uploaded to server';
+      showToast('Proof submitted. Waiting for admin confirmation.', 'success');
+      closeReceipt();
+    } catch (e) {
+      console.error(e);
+      showToast('Submit failed', 'error');
+      submitOrderBtn.disabled = false;
+    }
+  }
+
+  // UI functions
+  function createEmptyState(text) {
+    const el = document.createElement('div');
+    el.className = 'empty-state';
+    el.textContent = text;
+    return el;
+  }
+
+  function createErrorState(text) {
+    const el = createEmptyState(text);
+    el.style.color = 'var(--danger)';
+    return el;
+  }
+
+  function openCart() {
+    cartPanel.classList.add('open');
+    overlay.classList.add('show');
+  }
+
+  function closeCart() {
+    cartPanel.classList.remove('open');
+    overlay.classList.remove('show');
+  }
+
+  function openReceipt() {
+    document.getElementById('receiptModal').classList.add('open');
+    overlay.classList.add('show');
+  }
+
+  function closeReceipt() {
+    document.getElementById('receiptModal').classList.remove('open');
+    overlay.classList.remove('show');
+  }
+</script>

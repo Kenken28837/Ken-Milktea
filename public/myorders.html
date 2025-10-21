@@ -1,0 +1,133 @@
+<!-- My Orders Page Content -->
+<div class="container">
+  <h1>My Orders</h1>
+  <div id="gate" class="empty-state" style="display:none;">Please sign in to view your orders.</div>
+  <div id="orders" class="orders-grid"></div>
+</div>
+
+<script type="module">
+  import { auth, db } from '../../src/config/firebase.js';
+  import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+  import { collection, query, where, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+  import { subscribeToUserOrders, normalizeOrder, mapDeliveryStatus } from '../../src/services/orders.js';
+  import { formatCurrency, formatDate, escapeHtml } from '../../src/utils/helpers.js';
+
+  const ordersEl = document.getElementById('orders');
+  const gate = document.getElementById('gate');
+
+  let unsub = null;
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      if (unsub) { unsub(); unsub = null; }
+      ordersEl.textContent = '';
+      gate.style.display = 'block';
+      return;
+    }
+    gate.style.display = 'none';
+    bind(user.uid);
+  });
+
+  function bind(uid) {
+    if (!uid) { 
+      const u = auth.currentUser; 
+      if (!u) return; 
+      uid = u.uid; 
+    }
+    
+    if (unsub) { unsub(); unsub = null; }
+    ordersEl.textContent = '';
+    ordersEl.append(createEmptyState('Loading your orders...'));
+
+    unsub = subscribeToUserOrders(uid, (orders) => {
+      const normalizedOrders = orders.map(normalizeOrder);
+      normalizedOrders.sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0));
+      render(normalizedOrders);
+    });
+  }
+
+  function render(list) {
+    ordersEl.textContent = '';
+    if (!list.length) { 
+      ordersEl.append(createEmptyState('No orders yet.')); 
+      return; 
+    }
+    for (const o of list) ordersEl.append(createOrderCard(o));
+  }
+
+  function createOrderCard(order) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    
+    const statusLabel = mapDeliveryStatus(order.deliveryStatus);
+    const chip = document.createElement('span');
+    chip.className = 'status-badge ' + getStatusClass(statusLabel);
+    chip.textContent = statusLabel;
+
+    const top = document.createElement('div');
+    top.className = 'flex justify-between items-center';
+    const left = document.createElement('div');
+    left.innerHTML = `
+      <div><strong>Order:</strong> ${escapeHtml(order.id)}</div>
+      <div class="text-muted">Placed: ${formatDate(order.createdAt)}</div>
+      <div class="text-muted">Payment: Complete</div>
+    `;
+    const right = document.createElement('div');
+    right.append(chip);
+    top.append(left, right);
+
+    const items = document.createElement('div');
+    items.className = 'orders-grid';
+    for (const item of order.items) {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-md';
+      row.innerHTML = `
+        <img src="${item.imageUrl || './Coffee.png'}" alt="${item.name || 'item'}" style="width: 48px; height: 48px; border-radius: 8px;" />
+        <div class="flex-1">${escapeHtml(item.name || 'Item')}</div>
+        <div class="text-muted">× ${item.qty || 0}</div>
+        <div>${formatCurrency((item.price || 0) * (item.qty || 0))}</div>
+      `;
+      items.append(row);
+    }
+
+    const bottom = document.createElement('div');
+    bottom.className = 'flex justify-between items-center';
+    const total = document.createElement('div');
+    total.className = 'font-bold';
+    total.textContent = formatCurrency(order.total);
+    bottom.append(total);
+
+    const proof = document.createElement('div');
+    proof.className = 'flex items-center gap-md';
+    if (order.proofUrl) {
+      const link = document.createElement('a');
+      link.href = order.proofUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'btn btn-secondary';
+      link.textContent = 'View proof of payment';
+      proof.append(link);
+    }
+
+    card.append(top, items, bottom);
+    if (proof.childElementCount) card.append(proof);
+    return card;
+  }
+
+  function getStatusClass(label) {
+    switch (label) {
+      case 'Pending': return 'pending';
+      case 'Cancelled': return 'cancelled';
+      case 'On the way': return 'ontheway';
+      case 'Delivered': return 'delivered';
+      default: return '';
+    }
+  }
+
+  function createEmptyState(text) {
+    const el = document.createElement('div');
+    el.className = 'empty-state';
+    el.textContent = text;
+    return el;
+  }
+</script>
